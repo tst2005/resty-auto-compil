@@ -1,0 +1,13 @@
+#!/bin/sh
+
+# ----------------------------------------------------------------------------
+#       -- openresty auto compil - My current script to get/compile/install Openresty --
+#       -- Copyright (c) 2014-2015 TsT worldmaster.fr <tst2005@gmail.com> --
+# ----------------------------------------------------------------------------
+
+
+target=ngx_openresty-1.7.7.2
+name=openresty
+version="${target#*-}"
+installdir="/usr/local/tools/64bits/$name/$version"
+

@@ -6,13 +6,45 @@
 # ----------------------------------------------------------------------------
 
 
-target=ngx_openresty-1.7.7.2
-name=openresty
-version="${target#*-}"
-installdir="/usr/local/tools/64bits/$name/$version"
+#target=ngx_openresty-1.7.7.2
+#name=openresty
+#version="${target#*-}"
+#installdir="/usr/local/tools/64bits/$name/$version"
+
+show_usage() {
+	echo "Usage: $0 <profile-directory>"
+	echo "profile-directory must containts env and options file"
+}
 
 # stop <message> [<exit code(default:1)>]
 stop() { echo >&2 "Aborted $1"; exit ${2:-1}; }
+
+if [ $# -ne 1 ]; then
+	show_usage
+	exit 1
+fi
+
+profiledir="$1";shift
+
+if [ -z "$profiledir" ]; then
+	show_usage
+	stop "because profile-directory is empty"
+fi
+[ -d "$profiledir" ] || stop "No such profile-directory $profiledir"
+
+
+if [ ! -f "$profiledir/env" ] || [ ! -f "$profiledir/options" ]; then
+	stop "Missing mandatory file (env or options) in directory $profiledir"
+fi
+
+. "$profiledir/env"
+
+options="$profiledir/options"
+case "$profiledir" in
+	/*) ;; # absolute path
+	*) options="$(pwd)/$options"
+esac
+
 
 # check if already installed ?
 [ ! -d "$installdir" ] || stop "because $name seems already installed in $installdir"
@@ -48,7 +80,7 @@ PATH="$PATH:/sbin"; export PATH
 type ldconfig || stop "at ldconfig not found (even with /sbin in PATH)"
 
 # clean
-make clean ;# or make distclean ?
+[ ! -f "Makefile" ] || make clean
 
 # configure
 {
@@ -56,69 +88,13 @@ make clean ;# or make distclean ?
 --with-luajit \
 --prefix="$installdir" \
 $(
-echo	--without-http_echo_module
-echo	--without-http_xss_module
-echo	--without-http_coolkit_module
-echo	--without-http_set_misc_module
-echo	--without-http_form_input_module
-echo	--without-http_encrypted_session_module
-echo	--without-http_srcache_module
-#	--without-http_lua_module
-echo	--without-http_lua_upstream_module
-#	--without-http_headers_more_module
-echo	--without-http_array_var_module
-echo	--without-http_memc_module
-echo	--without-http_redis2_module
-echo	--without-http_redis_module
-echo	--without-http_rds_json_module
-echo	--without-http_rds_csv_module
-#	--without-ngx_devel_kit_module
-echo	--without-http_ssl_module
-#	--without-lua_cjson
-echo	--without-lua_redis_parser
-echo	--without-lua_rds_parser
-#	--without-lua_resty_dns
-echo	--without-lua_resty_memcached
-echo	--without-lua_resty_redis
-echo	--without-lua_resty_mysql
-#	--without-lua_resty_upload
-echo	--without-lua_resty_upstream_healthcheck
-#	--without-lua_resty_string	# seems string+crypto : https://github.com/openresty/lua-resty-string/tree/master/lib/resty
-echo	--without-lua_resty_websocket
-#	--without-lua_resty_lock
-#	--without-lua_resty_lrucache	# seems interesting : https://github.com/openresty/lua-resty-lrucache
-#	--without-lua_resty_core
-#	--without-lua51
-#	--without-select_module
-#	--without-poll_module
-#	--without-http_charset_module
-#	--without-http_gzip_module
-#	--without-http_ssi_module
-#	--without-http_userid_module
-#	--without-http_access_module
-#	--without-http_auth_basic_module
-#	--without-http_autoindex_module
-echo	--without-http_geo_module
-echo	--without-http_map_module
-echo	--without-http_split_clients_module
-#	--without-http_referer_module
-#	--without-http_rewrite_module
-echo	--without-http_proxy_module
-echo	--without-http_fastcgi_module
-echo	--without-http_uwsgi_module
-echo	--without-http_scgi_module
-echo	--without-http_memcached_module
-#	--without-http_limit_zone_module
-#	--without-http_limit_req_module
-#	--without-http_empty_gif_module
-echo	--without-http_browser_module
-echo	--without-http_upstream_ip_hash_module
-#	--without-http
-echo	--without-http-cache
-echo	--without-mail_pop3_module
-echo	--without-mail_imap_module
-echo	--without-mail_smtp_module
-#	--without-pcre
+off() { echo "--without-${1#--without-}"; }
+while read w1 w2 w3_; do
+	if [ "$w1" = "#" ] || [ -z "$w1" ]; then continue; fi;
+	case "$w1" in
+		off) "$w1" "$w2" ;;
+	esac
+done < "$options"
 )
 } || stop "at configure step"
 
