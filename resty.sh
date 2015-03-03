@@ -121,11 +121,12 @@ install_steps() {
 }
 
 post_install_check() {
-	[ -f "$installdir/bin/resty" ] || stop "at post_install_check: resty binary not found (install fail?)"
-	[ -x "$installdir/bin/resty" ] || stop "at post_install_check: resty binary is not executable (really ?!)"
+	local pathtonginx="$installdir/nginx/sbin/nginx"
+	[ -f "$pathtonginx" ] || stop "at post_install_check: resty binary not found (install fail?)"
+	[ -x "$pathtonginx" ] || stop "at post_install_check: resty binary is not executable (really ?!)"
 
 	# show the version ... TODO: do some check with this string.
-	"$installdir/bin/resty" -V 2>&1 | grep ^nginx
+	"$pathtonginx" -V 2>&1 | grep ^nginx
 }
 
 # check if already installed ?
