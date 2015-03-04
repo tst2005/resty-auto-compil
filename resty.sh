@@ -33,18 +33,28 @@ fi
 [ -d "$profiledir" ] || stop "No such profile-directory $profiledir"
 
 
-if [ ! -f "$profiledir/env" ] || [ ! -f "$profiledir/options" ]; then
-	stop "Missing mandatory file (env or options) in directory $profiledir"
+if [ ! -f "$profiledir/env" ]; then
+	stop "Missing mandatory env file in directory $profiledir"
 fi
 
 . "$profiledir/env"
 
-options="$profiledir/options"
-case "$profiledir" in
-	/*) ;; # absolute path
-	*) options="$(pwd)/$options"
-esac
+#if [ -n "$pathsfile" ]; then
+#	[ -f "$profiledir/$pathsfile" ] || stop "No such paths file '$profiledir/$pathsfile'"
+#fi
+#if [ -n "$modulesfile" ]; then
+#	[ -f "$profiledir/$modulesfile" ] || stop "No such modules file '$profiledir/$modulesfile'"
+#fi
 
+## convert modules and paths to absolute path
+modules="$profiledir/modules"
+paths="$profiledir/paths"
+case "$profiledir" in
+	/*) ;;	# absolute path: do nothing
+	*)	# relative path: prefix with the current directory
+		modules="$(pwd)/$modules"
+		paths="$(pwd)/$paths"
+esac
 
 download_steps() {
 
@@ -80,6 +90,29 @@ deps_steps() {
 
 ################################
 
+paths_func() {
+		with() { printf %s\\n "$*"; }
+		while read -r w1 line; do
+			case "$w1" in
+				""|'#'*) continue ;;
+				with) ;;
+				*) stop "invalid line format '$w1 $line'"
+			esac
+			eval "$w1 $line"
+		done < "$paths"
+}
+
+modules_func() {
+		off() { printf %s\\n "--without-${1#--without-}"; }
+                on()  { printf %s\\n "--with-${1#--with-}"; }
+
+		while read -r w1 w2 w3_; do
+			if [ "$w1" = "#" ] || [ -z "$w1" ]; then continue; fi;
+			case "$w1" in
+				off|on) "$w1" "$w2" ;;
+			esac
+		done < "$modules"
+}
 
 compile_steps() {
 
@@ -90,19 +123,36 @@ compile_steps() {
 	# clean
 	[ ! -f "Makefile" ] || make clean
 
+	echo ./configure --with-luajit --prefix "$installdir"
+	echo "  $(paths_func)"
+	echo "  $(modules_func)"
+
 	# configure
 	{
 	./configure \
 	--with-luajit \
 	--prefix="$installdir" \
 	$(
+		with() { echo "$@"; }
+		while read -r w1 line; do
+			case "$w1" in
+				""|'#'*) continue ;;
+				with) ;;
+				*) stop "invalid line format '$w1 $line'"
+			esac
+			eval "$w1 $line"
+		done < "$paths"
+	) \
+	$(
 		off() { echo "--without-${1#--without-}"; }
-		while read w1 w2 w3_; do
+                on()  { echo "--with-${1#--with-}"; }
+
+		while read -r w1 w2 w3_; do
 			if [ "$w1" = "#" ] || [ -z "$w1" ]; then continue; fi;
 			case "$w1" in
-				off) "$w1" "$w2" ;;
+				off|on) "$w1" "$w2" ;;
 			esac
-		done < "$options"
+		done < "$modules"
 	)
 	} || stop "at configure step"
 

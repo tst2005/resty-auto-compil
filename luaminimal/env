@@ -9,5 +9,15 @@
 target=ngx_openresty-1.7.7.2
 name=openresty
 version="${target#*-}"
+
 installdir="/usr/local/tools/64bits/$name/$version"
 
+#BUG: something strange with luajit, compiled inside:
+# ~buildenv/ngx_openresty-1.7.7.2/build/luajit-root/usr/local/tools/64bits/openresty/1.7.7.2/luajit/...
+
+if [ "$1" = "--system" ]; then
+	NGX=ngx66
+	NGXVERS="$version"
+	installdir2="$installdir"
+	installdir="/etc/$NGX"
+fi

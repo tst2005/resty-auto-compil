@@ -1,0 +1,13 @@
+#
+
+#with          --prefix=                               # set the installation prefix
+with          --sbin-path="${installdir2:-$installdir}"/sbin/nginx             # set nginx binary pathname
+with          --conf-path="$installdir/nginx.conf"             # set nginx.conf pathname
+with          --error-log-path=/var/log/$NGX/error.log         # set error log pathname
+with          --pid-path=/var/run/$NGX.pid                     # set nginx.pid pathname
+with          --lock-path=/var/lock/$NGX.lock                  # set nginx.lock pathname
+with          --http-log-path=/var/log/$NGX/access.log         # set path to the http access log
+with          --http-client-body-temp-path=/var/lib/$NGX/body  # set path to the http client request body
+with          --http-proxy-temp-path=/var/lib/$NGX/proxy       # set path to the http proxy temporary files
+with          --http-fastcgi-temp-path=/var/lib/$NGX/fastcgi   # set path to the http fastcgi temporary
+#
